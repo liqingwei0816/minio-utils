@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+
+    <el-upload
+            class="upload-demo"
+            action=""
+            drag
+            :before-upload="upload"
+    >
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div class="el-upload__tip" slot="tip">只能上传jpg/png文件，且不超过500kb</div>
+    </el-upload>
+    <span>上传进度: {{jinDu}}</span>
+</div>
+
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script t>
+    new Vue({
+        el: '#app',
+        data: {
+
+            jinDu: 0
+        },
+        methods: {
+            upload: function (file) {
+                console.log("----------------------", file)
+
+
+                const myHeaders = new Headers();
+                myHeaders.append("Content-Type", "application/x-msdos-program");
+
+                const requestOptions = {
+                    headers: myHeaders,
+                    // 处理原生进度事件
+                    onUploadProgress: (progressEvent) => {
+                        const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        console.log(`---------------上传进度-------------: ${progress}%`);
+                        Vue.set(this, "jinDu", progress)
+
+                    }
+                };
+                //let putUrl = "http://127.0.0.1:9000/upload/data/kabi2.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20241026%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241026T151735Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=96941473d2e1995b84acbbab47907bc92bad8cec1d74e8e73f3de52a5de8942c";
+                console.log("-----------objectName--------------", file.name);
+                axios.get("http://127.0.0.1:8080/minio/policyUrl?objectName="+file.name)
+                    .then(function (response) {
+                        let uploadUrl = response.data;
+                        console.log("-----------预签名地址--------------", );
+                        let fileName = uploadUrl.split("upload/")[1].split("?")[0];
+                        console.log("-----------预签名文件名--------------", fileName);
+
+                        axios.put(uploadUrl, file, requestOptions)
+                            .then(function (response) {
+                                console.log("-----------上传完成--------------", response.data);
+                                axios.get("http://127.0.0.1:8080/minio/saveData?fileName="+fileName)
+                                    .then(function (response) {
+                                        console.log("-----------保存的文件名response---------", response);
+                                        console.log("-----------保存的文件名---------", response.data);
+                                    })
+                                    .catch(function (error) {
+                                        console.log("----------------error", error);
+                                    });
+                            })
+                            .catch(function (error) {
+                                console.log("----------------error", error);
+                            });
+                    })
+                    .catch(function (error) {
+                        console.log("----------------error", error);
+                    });
+
+
+                return false;
+            }
+        }
+    })
+
+</script>
+</body>
+</html>
